@@ -599,46 +599,99 @@
      ──────────────────────────────────────────────────────── */
 
   async function loadAdminDashboard() {
-    try {
-      const pendingContainer = document.getElementById('pending-users-list');
-      const { data: pendingUsers } = await supabase.from('users').select('*').eq('approved', false);
-      
-      if (!pendingUsers || pendingUsers.length === 0) {
-        if (pendingContainer) pendingContainer.innerHTML = '<p>No pending users.</p>';
-      } else {
-        if (pendingContainer) pendingContainer.innerHTML = pendingUsers.map(u => `
-          <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px;">
-            <h4>${u.name} (${u.role})</h4>
-            <p>${u.email} - ${u.branch} - ${u.passing_year}</p>
-            <button class="btn-primary" onclick="approveUser('${u.id}')">Approve</button>
-          </div>
-        `).join('');
-      }
+    console.log("Loading admin dashboard...");
 
-      const reportsContainer = document.getElementById('reports-list');
-      const { data: reports } = await supabase.from('reports').select('*, users!reports_reported_by_fkey(name)');
-      
-      if (!reports || reports.length === 0) {
+    // ── Pending Users ──
+    const pendingContainer = document.getElementById('pending-users-list');
+    if (pendingContainer) pendingContainer.innerHTML = 'Loading users...';
+
+    try {
+      const { data: pendingUsers, error: pendingError } = await supabase
+        .from('users')
+        .select('id, name, email, role, branch, passing_year')
+        .eq('approved', false);
+
+      if (pendingError) {
+        console.error('Fetch pending users error:', pendingError);
+        if (pendingContainer) pendingContainer.innerHTML = `<p style="color:red">Error: ${pendingError.message}</p>`;
+      } else {
+        console.log('Users fetched:', pendingUsers);
+        if (!pendingUsers || pendingUsers.length === 0) {
+          if (pendingContainer) pendingContainer.innerHTML = '<p>No pending users.</p>';
+        } else {
+          if (pendingContainer) pendingContainer.innerHTML = pendingUsers.map(u => `
+            <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px;">
+              <h4>${u.name || 'Unnamed'} (${u.role})</h4>
+              <p>${u.email} &mdash; ${u.branch || 'N/A'} &mdash; ${u.passing_year || 'N/A'}</p>
+              <button class="btn-primary" onclick="approveUser('${u.id}')">Approve</button>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (err) {
+      console.error('loadAdminDashboard pending error:', err);
+      if (pendingContainer) pendingContainer.innerHTML = '<p>Something went wrong loading users.</p>';
+    }
+
+    // ── Reports ──
+    const reportsContainer = document.getElementById('reports-list');
+    if (reportsContainer) reportsContainer.innerHTML = 'Loading reports...';
+
+    try {
+      const { data: reports, error: reportsError } = await supabase
+        .from('reports')
+        .select('*, users!reports_reported_by_fkey(name)');
+
+      if (reportsError) {
+        console.error('Fetch reports error:', reportsError);
+        if (reportsContainer) reportsContainer.innerHTML = `<p style="color:red">Error: ${reportsError.message}</p>`;
+      } else if (!reports || reports.length === 0) {
         if (reportsContainer) reportsContainer.innerHTML = '<p>No reports.</p>';
       } else {
         if (reportsContainer) reportsContainer.innerHTML = reports.map(r => `
           <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px;">
-             <h4>Reported ${r.type}</h4>
-             <p>Reason: ${r.reason}</p>
-             <p>By: ${r.users?.name || 'Unknown'}</p>
-             <button class="btn-outline" style="border-color:red; color:red;" onclick="deleteContent('${r.type}', '${r.reported_id}', '${r.id}')">Delete Content</button>
-             <button class="btn-outline" onclick="resolveReport('${r.id}')">Ignore/Resolve</button>
+            <h4>Reported ${r.type}</h4>
+            <p>Reason: ${r.reason}</p>
+            <p>By: ${r.users?.name || 'Unknown'}</p>
+            <button class="btn-outline" style="border-color:red; color:red;" onclick="deleteContent('${r.type}', '${r.reported_id}', '${r.id}')">Delete Content</button>
+            <button class="btn-outline" onclick="resolveReport('${r.id}')">Ignore/Resolve</button>
           </div>
         `).join('');
       }
-    } catch(err){}
+    } catch (err) {
+      console.error('loadAdminDashboard reports error:', err);
+      if (reportsContainer) reportsContainer.innerHTML = '<p>Something went wrong loading reports.</p>';
+    }
   }
 
   async function approveUser(id) {
     try {
-      const { error } = await supabase.from('users').update({ approved: true }).eq('id', id);
-      if (!error) { showToast("User approved"); loadAdminDashboard(); fetchAlumni(); }
-    } catch(err){}
+      // Step 1: Approve user in public table
+      const { error: approveError } = await supabase
+        .from('users')
+        .update({ approved: true })
+        .eq('id', id);
+
+      if (approveError) {
+        console.error('Approve error:', approveError);
+        return showToast('Error approving user: ' + approveError.message);
+      }
+
+      // Step 2: Auto-confirm email in auth.users so they can login immediately
+      const { error: confirmError } = await supabase
+        .rpc('confirm_user_email', { user_id: id });
+
+      if (confirmError) {
+        console.warn('Email confirm RPC error (non-fatal):', confirmError);
+      }
+
+      showToast('User approved & email confirmed ✓');
+      loadAdminDashboard();
+      fetchAlumni();
+    } catch (err) {
+      console.error('approveUser error:', err);
+      showToast('Error approving user');
+    }
   }
 
   async function deleteContent(type, contentId, reportId) {
