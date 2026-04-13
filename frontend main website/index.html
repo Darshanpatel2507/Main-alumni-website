@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AlumniHub — Where Alumni and Students Build the Future Together. Connect, mentor, and grow through exclusive events and a vibrant community." />
+  <title>AlumniHub | Alumni Student Interaction Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ========== NAVBAR ========== -->
+  <header class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#home" class="nav-logo" id="logo-link">
+        <img src="images/logo.png" alt="GSFC University Alumni Hub" class="logo-img" />
+      </a>
+
+      <nav class="nav-links" id="nav-links">
+        <a href="#home"       class="nav-link active" data-section="home">Home</a>
+        <a href="#events"     class="nav-link"        data-section="events">Events</a>
+        <a href="#directory"  class="nav-link"        data-section="directory">Alumni Network</a>
+        <a href="#mentorship" class="nav-link"        data-section="mentorship">Mentorship</a>
+        <a href="#forum"      class="nav-link"        data-section="forum">Discussions</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle Theme">
+          <!-- Moon icon (shown in light mode) -->
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <!-- Sun icon (shown in dark mode) -->
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        
+        <div id="auth-container" style="display: flex; align-items: center;">
+          <button class="btn-signin" id="signin-btn">Sign In</button>
+          <div id="user-profile" style="display: none; align-items: center; gap: 12px;">
+            <span id="user-name-display" style="font-weight: 500; font-size: 0.95rem; color: var(--text-color);"></span>
+            <button class="btn-outline" id="dashboard-btn" style="padding: 6px 16px; font-size: 0.85rem;" onclick="showDashboard()">Dashboard</button>
+            <button class="btn-outline" id="signout-btn" style="padding: 6px 16px; font-size: 0.85rem;">Sign Out</button>
+          </div>
+        </div>
+
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="public-views">
+    <!-- ========== HOME / HERO ========== -->
+    <section class="section hero-section" id="home">
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="badge-dot"></span>
+            Now connecting 10,000+ members
+          </div>
+          <h1 class="hero-title">
+            Where Alumni &amp; <span class="highlight">Students</span><br />
+            Build the Future Together
+          </h1>
+          <p class="hero-subtitle">
+            Connect with experienced alumni, find mentors, attend exclusive events,
+            and accelerate your career through our vibrant community.
+          </p>
+          <div class="hero-cta">
+            <button class="btn-primary" id="join-btn">Join the Network &rarr;</button>
+            <button class="btn-outline" id="explore-btn">Explore Events</button>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat-item">
+              <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div>
+                <div class="stat-number">10K+</div>
+                <div class="stat-label">Active Alumni</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="stat-number">2,500+</div>
+                <div class="stat-label">Mentorships</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </div>
+              <div>
+                <div class="stat-number">150+</div>
+                <div class="stat-label">Events/Year</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== EVENTS ========== -->
+    <section class="section events-section" id="events">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">UPCOMING</span>
+          <h2 class="section-title">Events &amp; Gatherings</h2>
+          <p class="section-subtitle">
+            Stay connected through workshops, panels, and networking events
+            designed for our community.
+          </p>
+        </div>
+
+        <div class="events-grid" id="events-grid">
+          <!-- Event cards injected by JS -->
+        </div>
+
+        <div class="section-footer">
+          <button class="btn-outline-full" id="view-all-events">View All Events</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== DIRECTORY ========== -->
+    <section class="section directory-section" id="directory">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">NETWORK</span>
+          <h2 class="section-title">Alumni Network</h2>
+          <p class="section-subtitle">
+            Discover and connect with alumni across industries and locations
+            worldwide.
+          </p>
+        </div>
+
+        <div class="directory-search">
+          <div class="search-bar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search alumni by name, company, or skill..." />
+          </div>
+          <div class="filter-chips" id="filter-chips">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="engineering">Engineering</button>
+            <button class="chip" data-filter="design">Design</button>
+            <button class="chip" data-filter="business">Business</button>
+            <button class="chip" data-filter="data">Data Science</button>
+          </div>
+        </div>
+
+        <div class="directory-grid" id="directory-grid">
+          <!-- Alumni cards injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MENTORSHIP ========== -->
+    <section class="section mentorship-section" id="mentorship">
+      <div class="container">
+        <div class="mentorship-layout">
+          <div class="mentorship-left">
+            <span class="section-badge mentorship-badge">MENTORSHIP</span>
+            <h2 class="mentorship-title">
+              Grow with guidance from<br />those who've been there
+            </h2>
+            <p class="mentorship-desc">
+              Our mentorship program connects current students with successful alumni
+              for structured, impactful guidance.
+            </p>
+
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>1-on-1 Guidance</h4>
+                  <p>Get personalized advice from alumni who've walked your path — career choices, interview prep, and beyond.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>Goal Tracking</h4>
+                  <p>Set milestones with your mentor and track your progress together through our structured program.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <div class="feature-text">
+                  <h4>Smart Matching</h4>
+                  <p>Our algorithm pairs you with mentors based on your goals, interests, and career aspirations.</p>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-mentorship" id="become-mentor-btn">Become a Mentor</button>
+          </div>
+
+          <div class="mentorship-right">
+            <div class="mentorship-card">
+              <h3>Ready to get started?</h3>
+              <p>Fill in your interests and we'll match you with the perfect mentor.</p>
+
+              <div class="form-group">
+                <label for="field-select">Your Field of Interest</label>
+                <select id="field-select" class="form-select">
+                  <option>Software Engineering</option>
+                  <option>Data Science</option>
+                  <option>Product Management</option>
+                  <option>UX/UI Design</option>
+                  <option>Business &amp; Finance</option>
+                  <option>Marketing</option>
+                  <option>Healthcare</option>
+                  <option>Law</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="help-textarea">What do you need help with?</label>
+                <textarea id="help-textarea" class="form-textarea" rows="4" placeholder="E.g., career transition advice, interview preparation..."></textarea>
+              </div>
+
+              <button class="btn-match" id="request-match-btn">Request a Mentor Match</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FORUM ========== -->
+    <section class="section forum-section" id="forum">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">COMMUNITY</span>
+          <h2 class="section-title">Discussions</h2>
+          <p class="section-subtitle">
+            Ask questions, share experiences, and engage with the community
+            on topics that matter to you.
+          </p>
+        </div>
+
+        <div class="forum-layout">
+          <div class="forum-threads" id="forum-threads">
+            <!-- Forum threads injected by JS -->
+          </div>
+          <div class="forum-sidebar">
+            <div class="sidebar-widget">
+              <h4>Popular Topics</h4>
+              <div class="topic-tags" id="topic-tags">
+                <span class="topic-tag">Career Advice</span>
+                <span class="topic-tag">Internships</span>
+                <span class="topic-tag">Interview Prep</span>
+                <span class="topic-tag">Networking</span>
+                <span class="topic-tag">Tech Industry</span>
+                <span class="topic-tag">MBA</span>
+                <span class="topic-tag">Startups</span>
+                <span class="topic-tag">Remote Work</span>
+              </div>
+            </div>
+            <div class="sidebar-widget">
+              <h4>Start a Discussion</h4>
+              <p class="widget-desc">Have a question or something to share with the community?</p>
+              <button class="btn-new-post" id="new-post-btn">+ New Post</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div> <!-- END OF PUBLIC VIEWS -->
+
+    <!-- ========== DASHBOARDS ========== -->
+    <div id="dashboard-views" style="display:none; padding-top: 100px;">
+      <div class="container">
+        <div id="admin-dashboard" style="display:none;">
+          <h2 class="section-title">Admin Dashboard</h2>
+          <div class="dashboard-tabs">
+            <button class="btn-outline active" onclick="showDashboardTab('admin-users')">Pending Users</button>
+            <button class="btn-outline" onclick="showDashboardTab('admin-reports')">Reports</button>
+            <button class="btn-outline" onclick="showDashboardTab('admin-all-users')">Manage Users</button>
+          </div>
+          <div id="admin-users" class="dashboard-tab-content active" style="margin-top:20px;">
+            <div id="pending-users-list">Loading pending users...</div>
+          </div>
+          <div id="admin-reports" class="dashboard-tab-content" style="display:none; margin-top:20px;">
+            <div id="reports-list">Loading reports...</div>
+          </div>
+          <div id="admin-all-users" class="dashboard-tab-content" style="display:none; margin-top:20px;">
+            <div id="all-users-list">Loading all users...</div>
+          </div>
+        </div>
+
+        <div id="alumni-dashboard" style="display:none;">
+          <h2 class="section-title">Alumni Dashboard</h2>
+          <div class="dashboard-tabs">
+            <button class="btn-outline active" onclick="showDashboardTab('alumni-connections')">Connection Requests</button>
+            <button class="btn-outline" onclick="showDashboardTab('alumni-events')">My Events</button>
+            <button class="btn-outline" onclick="showDashboardTab('alumni-chat')">Chat</button>
+          </div>
+          <div id="alumni-connections" class="dashboard-tab-content active" style="margin-top:20px;">
+            <div id="alumni-connections-list">Loading connection requests...</div>
+          </div>
+          <div id="alumni-events" class="dashboard-tab-content" style="display:none; margin-top:20px;">
+            <button class="btn-primary" onclick="showAddEventModal()">+ Create Event</button>
+            <div id="alumni-my-events" style="margin-top:20px;">Loading my events...</div>
+          </div>
+          <div id="alumni-chat" class="dashboard-tab-content" style="display:none; margin-top:20px;">
+            <div id="alumni-chat-container" class="chat-layout" style="display:flex; height:400px; border:1px solid var(--border-color); border-radius:8px; overflow:hidden;">
+              <div class="chat-sidebar" style="width:250px; border-right:1px solid var(--border-color); overflow-y:auto; padding:10px;">
+                <h4>Connected Students</h4>
+                <div id="alumni-chat-users">Select a student</div>
+              </div>
+              <div class="chat-body" style="flex:1; display:flex; flex-direction:column; background:var(--bg-alt);">
+                 <div id="alumni-chat-messages" style="flex:1; padding:15px; overflow-y:auto;"></div>
+                 <form id="alumni-chat-form" style="display:flex; padding:10px; border-top:1px solid var(--border-color);">
+                   <input type="text" id="alumni-chat-input" class="form-input" style="flex:1; margin-right:10px;" placeholder="Type a message..." required disabled />
+                   <button type="submit" class="btn-primary" disabled>Send</button>
+                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="student-dashboard" style="display:none;">
+          <h2 class="section-title">Student Dashboard</h2>
+          <div class="dashboard-tabs">
+            <button class="btn-outline active" onclick="showDashboardTab('student-connections')">My Connections</button>
+            <button class="btn-outline" onclick="showDashboardTab('student-chat')">Chat</button>
+          </div>
+          <div id="student-connections" class="dashboard-tab-content active" style="margin-top:20px;">
+            <div class="filter-chips" style="margin-bottom:20px;">
+               <button class="chip active" onclick="window.location.hash='#directory'; setTimeout(()=>hideDashboard(),100)">Find Mentors</button>
+            </div>
+            <div id="student-connections-list">Loading connections...</div>
+          </div>
+          <div id="student-chat" class="dashboard-tab-content" style="display:none; margin-top:20px;">
+             <div id="student-chat-container" class="chat-layout" style="display:flex; height:400px; border:1px solid var(--border-color); border-radius:8px; overflow:hidden;">
+              <div class="chat-sidebar" style="width:250px; border-right:1px solid var(--border-color); overflow-y:auto; padding:10px;">
+                <h4>Connected Mentors</h4>
+                <div id="student-chat-users">Select an alumni</div>
+              </div>
+              <div class="chat-body" style="flex:1; display:flex; flex-direction:column; background:var(--bg-alt);">
+                 <div id="student-chat-messages" style="flex:1; padding:15px; overflow-y:auto;"></div>
+                 <form id="student-chat-form" style="display:flex; padding:10px; border-top:1px solid var(--border-color);">
+                   <input type="text" id="student-chat-input" class="form-input" style="flex:1; margin-right:10px;" placeholder="Type a message..." required disabled />
+                   <button type="submit" class="btn-primary" disabled>Send</button>
+                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="nav-logo footer-logo">
+            <img src="images/logo.png" alt="GSFC University Alumni Hub" class="logo-img" />
+          </div>
+          <p class="footer-tagline">Building bridges between generations of talent.</p>
+        </div>
+        <div class="footer-links-col">
+          <h5>Platform</h5>
+          <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#events">Events</a></li>
+            <li><a href="#directory">Alumni Network</a></li>
+            <li><a href="#mentorship">Mentorship</a></li>
+          </ul>
+        </div>
+        <div class="footer-links-col">
+          <h5>Community</h5>
+          <ul>
+            <li><a href="#forum">Discussions</a></li>
+            <li><a href="#">Success Stories</a></li>
+            <li><a href="#">Newsletter</a></li>
+            <li><a href="#">Refer a Friend</a></li>
+          </ul>
+        </div>
+        <div class="footer-links-col">
+          <h5>Company</h5>
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 GSFCU AlumniHub. All rights reserved.</p>
+        <p>Made with 💙 for connecting communities</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sign In Modal -->
+  <div class="modal-overlay" id="signin-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <button class="modal-close" id="modal-close" aria-label="Close modal">&times;</button>
+      <div class="modal-logo">
+        <img src="images/logo.png" alt="GSFC University Alumni Hub" class="logo-img" />
+      </div>
+      <h2 id="modal-title">Welcome back</h2>
+      <p class="modal-subtitle">Sign in to your account</p>
+      <form class="modal-form" id="signin-form">
+        <div class="form-group">
+          <label for="email-input">Email address</label>
+          <input type="email" id="email-input" class="form-input" placeholder="you@university.edu" required />
+        </div>
+        <div class="form-group">
+          <label for="password-input">Password</label>
+          <input type="password" id="password-input" class="form-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-modal-signin">Sign In</button>
+      </form>
+      <p class="modal-footer-text">Don't have an account? <a href="#" id="signup-link">Sign up</a></p>
+    </div>
+  </div>
+
+  <!-- Sign Up Modal -->
+  <div class="modal-overlay" id="signup-modal" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
+    <div class="modal-card">
+      <button class="modal-close" id="signup-modal-close" aria-label="Close modal">&times;</button>
+      <div class="modal-logo">
+        <img src="images/logo.png" alt="GSFC University Alumni Hub" class="logo-img" />
+      </div>
+      <h2 id="signup-modal-title">Create an Account</h2>
+      <p class="modal-subtitle">Join the AlumniHub community</p>
+      <form class="modal-form" id="signup-form">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" class="form-input" placeholder="John Doe" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email address</label>
+          <input type="email" id="signup-email" class="form-input" placeholder="you@university.edu" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" class="form-input" placeholder="••••••••" required minlength="6"/>
+        </div>
+        <div class="form-group">
+          <label for="signup-role">I am a...</label>
+          <select id="signup-role" class="form-select" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-family: inherit;">
+            <option value="student">Current Student</option>
+            <option value="alumni">Alumni</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="signup-branch">Branch / Major</label>
+            <input type="text" id="signup-branch" class="form-input" placeholder="e.g. Computer Science" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="signup-year">Passing Year</label>
+            <input type="number" id="signup-year" class="form-input" placeholder="2024" />
+          </div>
+        </div>
+        <button type="submit" class="btn-modal-signin" id="signup-submit-btn">Sign Up</button>
+      </form>
+      <p class="modal-footer-text">Already have an account? <a href="#" id="login-link">Sign in</a></p>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+    <div class="modal-card">
+      <button class="modal-close" id="report-modal-close" aria-label="Close modal">&times;</button>
+      <h2 id="report-modal-title">Report Content</h2>
+      <p class="modal-subtitle">Please explain why you are reporting this.</p>
+      <form class="modal-form" id="report-form">
+        <div class="form-group">
+          <label for="report-reason">Reason</label>
+          <textarea id="report-reason" class="form-textarea" rows="4" placeholder="This content is inappropriate..." required></textarea>
+        </div>
+        <button type="submit" class="btn-modal-signin">Submit Report</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="javascript/main.js"></script>
+</body>
+</html>
