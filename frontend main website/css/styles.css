@@ -1195,23 +1195,28 @@ input, select, textarea { font-family: inherit; }
 /* =====================================================
    SIGN IN MODAL
    ===================================================== */
+body.modal-open {
+  overflow: hidden;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
   background: var(--modal-overlay);
   z-index: 2000;
-  display: flex;
+  display: none;    /* Hide by default */
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow: hidden; /* Prevent overlay scroll */
+  
+  /* Keep animations if possible, but rely on display */
   opacity: 0;
-  pointer-events: none;
   transition: opacity 0.3s ease;
   backdrop-filter: blur(4px);
-  overflow-y: auto;
 }
 
 .modal-overlay.open {
+  display: flex;    /* Show when open */
   opacity: 1;
   pointer-events: all;
 }
