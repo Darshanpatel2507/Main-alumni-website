@@ -296,6 +296,7 @@
             showToast(error.message);
           } else {
             if (signinModal) signinModal.classList.remove("open");
+            document.body.classList.remove("modal-open"); // 🔥 IMPORTANT FIX
             showToast("Signed in successfully.");
           }
         } catch (err) {
@@ -336,6 +337,7 @@
             showToast(error.message);
           } else {
             if (signupModal) signupModal.classList.remove("open");
+            document.body.classList.remove("modal-open"); // 🔥 FIX
             showToast("Registration successful! Waiting for approval.");
           }
         } catch(err) {
@@ -393,6 +395,9 @@
       if (currentUser) showDashboard();
 
       supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          document.body.classList.remove("modal-open"); // 🔥 ENSURE SCROLL RETURNS
+        }
         if (event === 'SIGNED_IN') {
           await handleSession(session);
           if (currentUser) showDashboard(); 
@@ -586,7 +591,7 @@
         const time = document.getElementById("event-time")?.value || null;
         const location = document.getElementById("event-location")?.value?.trim() || '';
         const tag = document.getElementById("event-tag")?.value?.trim() || '';
-        const description = document.getElementById("event-desc")?.value?.trim() || '';
+        const description = document.getElementById("event-description")?.value?.trim() || '';
         const type = document.getElementById("event-type")?.value || 'virtual';
 
         if (!title) return showToast("Title is required");
@@ -605,13 +610,14 @@
             time,
             location,
             tag,
+            description, // 🔥 ADD THIS
             created_by: currentUser.id
           };
-          // Only include optional columns if they have values
-          if (description) insertData.description = description;
           if (type) insertData.type = type;
 
           const { data, error } = await supabase.from('events').insert(insertData).select();
+          
+          console.log("Event data:", data);
 
           btn.textContent = originalText;
           btn.disabled = false;
@@ -625,7 +631,7 @@
           console.log("Event posted successfully:", data);
           showToast("Event posted successfully!");
           // Clear the form fields
-          ['event-title','event-desc','event-date','event-time','event-location','event-tag'].forEach(id => {
+          ['event-title','event-description','event-date','event-time','event-location','event-tag'].forEach(id => {
             const el = document.getElementById(id); if (el) el.value = '';
           });
           const eventModal = document.getElementById("event-modal");
@@ -1146,6 +1152,9 @@
           ${e.type === "in-person" ? "In-Person" : "Virtual"}
         </span>
         <h3 class="event-title">${e.title} ${e.is_edited ? '<span style="font-size:0.7em; color:gray">(edited)</span>' : ''}</h3>
+        <p class="event-description">
+          ${e.description || "No description provided"}
+        </p>
         <div class="event-meta">
           <span class="event-meta-item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
