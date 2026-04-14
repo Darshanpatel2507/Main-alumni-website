@@ -230,11 +230,44 @@
       }
     });
 
+    // ── Event Modal ──
+    const eventModal = document.getElementById("event-modal");
+    const closeEventBtn = document.getElementById("close-event-modal");
+    if (closeEventBtn && eventModal) {
+      closeEventBtn.addEventListener("click", () => eventModal.classList.remove("open"));
+    }
+    if (eventModal) {
+      eventModal.addEventListener("click", (e) => { if (e.target === eventModal) eventModal.classList.remove("open"); });
+    }
+
+    // ── New Post Modal ──
+    const newPostModal = document.getElementById("new-post-modal");
+    const closePostBtn = document.getElementById("close-post-modal");
+    const newPostBtn = document.getElementById("new-post-btn");
+
+    if (newPostBtn) {
+      newPostBtn.addEventListener("click", () => {
+        if (!currentUser) return showToast("Please sign in to start a discussion.");
+        if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
+          return showToast("Only alumni or admins can post discussions.");
+        }
+        if (newPostModal) newPostModal.classList.add("open");
+      });
+    }
+    if (closePostBtn && newPostModal) {
+      closePostBtn.addEventListener("click", () => newPostModal.classList.remove("open"));
+    }
+    if (newPostModal) {
+      newPostModal.addEventListener("click", (e) => { if (e.target === newPostModal) newPostModal.classList.remove("open"); });
+    }
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (signinModal) signinModal.classList.remove("open");
         if (signupModal) signupModal.classList.remove("open");
         if (reportModal) reportModal.classList.remove("open");
+        if (eventModal) eventModal.classList.remove("open");
+        if (newPostModal) newPostModal.classList.remove("open");
       }
     });
 
@@ -519,47 +552,107 @@
      ──────────────────────────────────────────────────────── */
 
   function initDashboardForms() {
-    const eventForm = document.getElementById("new-event-form");
-    if (eventForm) {
-      eventForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+    // ── Submit Event (from event modal) ──
+    const submitEventBtn = document.getElementById("submit-event");
+    if (submitEventBtn) {
+      submitEventBtn.addEventListener("click", async () => {
+        if (!currentUser) return showToast("Please sign in first.");
+        if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
+          return showToast("Only alumni or admins can create events.");
+        }
+
+        const title = document.getElementById("event-title")?.value?.trim();
+        if (!title) return showToast("Event title is required.");
+
+        const btn = submitEventBtn;
+        const originalText = btn.textContent;
+        btn.textContent = "Posting...";
+        btn.disabled = true;
+
         try {
           const { error } = await supabase.from('events').insert({
-            title: document.getElementById("event-title").value, 
-            description: document.getElementById("event-desc").value, 
-            date: document.getElementById("event-date").value, 
-            time: document.getElementById("event-time").value, 
-            location: document.getElementById("event-location").value, 
-            type: document.getElementById("event-type").value, 
+            title,
+            description: document.getElementById("event-desc")?.value || '',
+            date: document.getElementById("event-date")?.value || null,
+            time: document.getElementById("event-time")?.value || null,
+            location: document.getElementById("event-location")?.value || '',
+            type: document.getElementById("event-type")?.value || 'virtual',
+            tag: document.getElementById("event-tag")?.value || '',
             created_by: currentUser.id
           });
-          if (error) return showToast("Failed to create event.");
+
+          btn.textContent = originalText;
+          btn.disabled = false;
+
+          if (error) return showToast("Failed to create event: " + error.message);
+
           showToast("Event created successfully!");
-          eventForm.reset();
+          // Clear the form fields
+          ['event-title','event-desc','event-date','event-time','event-location','event-tag'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+          });
+          const eventModal = document.getElementById("event-modal");
+          if (eventModal) eventModal.classList.remove("open");
           fetchEvents();
-          if (currentUser.role === 'admin') loadAdminDashboard();
-        } catch(err) {}
+        } catch(err) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+          showToast("Network error creating event.");
+        }
       });
     }
 
+    // ── Submit Discussion Post (from post modal) ──
     const postForm = document.getElementById("new-post-form");
     if (postForm) {
       postForm.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (!currentUser) return showToast("Please sign in first.");
+        if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
+          return showToast("Only alumni or admins can post discussions.");
+        }
+
+        const title = document.getElementById("post-title")?.value?.trim();
+        const content = document.getElementById("post-content")?.value?.trim();
+        if (!title || !content) return showToast("Title and content are required.");
+
+        const btn = postForm.querySelector('button[type="submit"]');
+        const originalText = btn ? btn.textContent : '';
+        if (btn) { btn.textContent = "Posting..."; btn.disabled = true; }
+
         try {
           const { error } = await supabase.from('discussions').insert({
-            title: document.getElementById("post-title").value, 
-            content: document.getElementById("post-content").value, 
-            tag: document.getElementById("post-tag").value, 
+            title,
+            content,
+            tag: document.getElementById("post-tag")?.value || 'Discussion',
             user_id: currentUser.id
           });
-          if (error) return showToast("Failed to create post.");
-          showToast("Post submitted!");
+
+          if (btn) { btn.textContent = originalText; btn.disabled = false; }
+
+          if (error) return showToast("Failed to create post: " + error.message);
+
+          showToast("Discussion posted!");
           postForm.reset();
+          const postModal = document.getElementById("new-post-modal");
+          if (postModal) postModal.classList.remove("open");
           fetchForum();
-        } catch(err){}
+        } catch(err) {
+          if (btn) { btn.textContent = originalText; btn.disabled = false; }
+          showToast("Network error creating post.");
+        }
       });
     }
+  }
+
+  // ── showAddEventModal — called from alumni dashboard "+ Create Event" button ──
+  function showAddEventModal() {
+    if (!currentUser) return showToast("Please sign in first.");
+    if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
+      return showToast("Only alumni or admins can create events.");
+    }
+    const eventModal = document.getElementById("event-modal");
+    if (eventModal) eventModal.classList.add("open");
   }
 
   async function editContent(type, id) {
@@ -599,7 +692,7 @@
      ──────────────────────────────────────────────────────── */
 
   async function loadAdminDashboard() {
-    console.log("Loading admin dashboard...");
+    console.log("Admin dashboard loaded");
 
     // ── Pending Users ──
     const pendingContainer = document.getElementById('pending-users-list');
@@ -662,6 +755,68 @@
       console.error('loadAdminDashboard reports error:', err);
       if (reportsContainer) reportsContainer.innerHTML = '<p>Something went wrong loading reports.</p>';
     }
+
+    // ── Manage All Users ──
+    const allUsersContainer = document.getElementById('all-users-list');
+    if (allUsersContainer) allUsersContainer.innerHTML = 'Loading all users...';
+
+    try {
+      const { data: allUsers, error: allUsersError } = await supabase
+        .from('users')
+        .select('id, name, email, role, branch, passing_year, approved, restricted')
+        .order('name', { ascending: true });
+
+      if (allUsersError) {
+        console.error('Fetch all users error:', allUsersError);
+        if (allUsersContainer) allUsersContainer.innerHTML = `<p style="color:red">Error: ${allUsersError.message}</p>`;
+      } else if (!allUsers || allUsers.length === 0) {
+        if (allUsersContainer) allUsersContainer.innerHTML = '<p>No users found.</p>';
+      } else {
+        if (allUsersContainer) allUsersContainer.innerHTML = allUsers.map(u => {
+          const statusBadge = u.restricted ? '<span style="color:red; font-weight:600;">🚫 Restricted</span>' 
+            : u.approved ? '<span style="color:green; font-weight:600;">✅ Active</span>' 
+            : '<span style="color:orange; font-weight:600;">⏳ Pending</span>';
+          const actionBtns = u.role !== 'admin' ? `
+            ${!u.approved ? `<button class="btn-primary" style="padding:4px 12px; font-size:12px;" onclick="approveUser('${u.id}')">Approve</button>` : ''}
+            ${!u.restricted ? `<button class="btn-outline" style="padding:4px 12px; font-size:12px; border-color:red; color:red;" onclick="restrictUser('${u.id}')">Restrict</button>` : `<button class="btn-outline" style="padding:4px 12px; font-size:12px; border-color:green; color:green;" onclick="unrestrictUser('${u.id}')">Unrestrict</button>`}
+          ` : '<span style="font-size:12px; color:var(--text-muted);">Admin</span>';
+          return `
+            <div style="border:1px solid var(--border-color); padding:12px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <strong>${u.name || 'Unnamed'}</strong> <span style="color:var(--text-muted); font-size:0.85em;">(${u.role})</span><br/>
+                <span style="font-size:0.85em; color:var(--text-secondary);">${u.email} &mdash; ${u.branch || 'N/A'} &mdash; ${u.passing_year || 'N/A'}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${statusBadge}
+                ${actionBtns}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (err) {
+      console.error('loadAdminDashboard all-users error:', err);
+      if (allUsersContainer) allUsersContainer.innerHTML = '<p>Something went wrong loading users.</p>';
+    }
+  }
+
+  async function restrictUser(id) {
+    if (!confirm("Are you sure you want to restrict this user?")) return;
+    try {
+      const { error } = await supabase.from('users').update({ restricted: true }).eq('id', id);
+      if (error) return showToast("Failed to restrict user: " + error.message);
+      showToast("User restricted.");
+      loadAdminDashboard();
+    } catch(err) { showToast("Error restricting user."); }
+  }
+
+  async function unrestrictUser(id) {
+    try {
+      const { error } = await supabase.from('users').update({ restricted: false }).eq('id', id);
+      if (error) return showToast("Failed to unrestrict user: " + error.message);
+      showToast("User unrestricted.");
+      loadAdminDashboard();
+    } catch(err) { showToast("Error unrestricting user."); }
   }
 
   async function approveUser(id) {
@@ -1059,5 +1214,8 @@
   window.hideDashboard = hideDashboard;
   window.showDashboardTab = showDashboardTab;
   window.handleConnect = handleConnect;
+  window.showAddEventModal = showAddEventModal;
+  window.restrictUser = restrictUser;
+  window.unrestrictUser = unrestrictUser;
 
 })();
