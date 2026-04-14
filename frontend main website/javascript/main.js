@@ -641,46 +641,75 @@
     }
 
     // ── Submit Discussion Post (from post modal) ──
-    const postForm = document.getElementById("new-post-form");
-    if (postForm) {
-      postForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!currentUser) return showToast("Please sign in first.");
-        if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
-          return showToast("Only alumni or admins can post discussions.");
-        }
+    document.getElementById("submit-discussion")?.addEventListener("click", async (e) => {
+      e.preventDefault(); // Prevent form reload
+      console.log("Post button clicked");
+      console.log("Current User:", currentUser);
 
-        const title = document.getElementById("post-title")?.value?.trim();
-        const content = document.getElementById("post-content")?.value?.trim();
-        if (!title || !content) return showToast("Title and content are required.");
+      if (!currentUser) {
+        showToast("Please login first");
+        return;
+      }
+      
+      if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
+        showToast("Only alumni or admins can post discussions.");
+        return;
+      }
 
-        const btn = postForm.querySelector('button[type="submit"]');
-        const originalText = btn ? btn.textContent : '';
-        if (btn) { btn.textContent = "Posting..."; btn.disabled = true; }
+      const title = document.getElementById("post-title").value.trim();
+      const content = document.getElementById("post-content").value.trim();
+      const tag = document.getElementById("post-tag")?.value || 'Discussion';
 
-        try {
-          const { error } = await supabase.from('discussions').insert({
-            title,
-            content,
-            tag: document.getElementById("post-tag")?.value || 'Discussion',
+      if (!title || !content) {
+        showToast("All fields required");
+        return;
+      }
+
+      const btn = document.getElementById("submit-discussion");
+      const originalText = btn.textContent;
+      btn.textContent = "Posting...";
+      btn.disabled = true;
+
+      try {
+        console.log("Sending data to Supabase...");
+
+        // Using created_by instead of user_id as per actual schema
+        const { data, error } = await supabase
+          .from("discussions")
+          .insert([{
+            title: title,
+            content: content,
+            tag: tag,
             created_by: currentUser.id
-          });
+          }])
+          .select();
 
-          if (btn) { btn.textContent = originalText; btn.disabled = false; }
+        btn.textContent = originalText;
+        btn.disabled = false;
 
-          if (error) return showToast("Failed to create post: " + error.message);
-
-          showToast("Discussion posted!");
-          postForm.reset();
-          const postModal = document.getElementById("new-post-modal");
-          if (postModal) closeModal(postModal);
-          fetchForum();
-        } catch(err) {
-          if (btn) { btn.textContent = originalText; btn.disabled = false; }
-          showToast("Network error creating post.");
+        if (error) {
+          console.error("Insert error:", error);
+          showToast("Error: " + error.message);
+          return;
         }
-      });
-    }
+
+        console.log("Insert success:", data);
+        showToast("Discussion posted successfully");
+
+        // Clear form
+        document.getElementById("new-post-form")?.reset();
+        
+        // Close modal
+        closeModal(document.getElementById("new-post-modal"));
+
+        fetchForum(); // refresh list
+      } catch (err) {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        console.error("Unexpected error:", err);
+        showToast("Something went wrong");
+      }
+    });
   }
 
   // ── showAddEventModal — called from alumni dashboard "+ Create Event" button ──
