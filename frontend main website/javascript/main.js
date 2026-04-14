@@ -21,8 +21,15 @@
     try {
       if (window.supabase) {
         const { createClient } = window.supabase;
-        supabase = createClient(supabaseUrl, supabaseKey);
-        console.log("Supabase connected");
+        supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            persistSession: true,
+            storage: window.sessionStorage,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        });
+        console.log("Supabase connected (sessionStorage mode — per-tab sessions)");
       }
     } catch (err) {
       console.error("Supabase init error:", err);
@@ -195,37 +202,37 @@
 
     // "Sign In" button reliably triggers "open"
     if (openSigninBtn && signinModal) {
-      openSigninBtn.addEventListener("click", () => signinModal.classList.add("open"));
+      openSigninBtn.addEventListener("click", () => openModal(signinModal));
     }
     
     if (closeSigninBtn && signinModal) {
-      closeSigninBtn.addEventListener("click", () => signinModal.classList.remove("open"));
+      closeSigninBtn.addEventListener("click", () => closeModal(signinModal));
     }
     
     if (closeSignupBtn && signupModal) {
-      closeSignupBtn.addEventListener("click", () => signupModal.classList.remove("open"));
+      closeSignupBtn.addEventListener("click", () => closeModal(signupModal));
     }
 
     if (signupLink) {
       signupLink.addEventListener("click", (e) => {
         e.preventDefault();
-        if (signinModal) signinModal.classList.remove("open");
-        if (signupModal) signupModal.classList.add("open");
+        closeModal(signinModal);
+        openModal(signupModal);
       });
     }
 
     if (loginLink) {
       loginLink.addEventListener("click", (e) => {
         e.preventDefault();
-        if (signupModal) signupModal.classList.remove("open");
-        if (signinModal) signinModal.classList.add("open");
+        closeModal(signupModal);
+        openModal(signinModal);
       });
     }
 
     [signinModal, signupModal].forEach(modal => {
       if (modal) {
         modal.addEventListener("click", (e) => {
-          if (e.target === modal) modal.classList.remove("open");
+          if (e.target === modal) closeModal(modal);
         });
       }
     });
@@ -234,10 +241,10 @@
     const eventModal = document.getElementById("event-modal");
     const closeEventBtn = document.getElementById("close-event-modal");
     if (closeEventBtn && eventModal) {
-      closeEventBtn.addEventListener("click", () => eventModal.classList.remove("open"));
+      closeEventBtn.addEventListener("click", () => closeModal(eventModal));
     }
     if (eventModal) {
-      eventModal.addEventListener("click", (e) => { if (e.target === eventModal) eventModal.classList.remove("open"); });
+      eventModal.addEventListener("click", (e) => { if (e.target === eventModal) closeModal(eventModal); });
     }
 
     // ── New Post Modal ──
@@ -251,23 +258,19 @@
         if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
           return showToast("Only alumni or admins can post discussions.");
         }
-        if (newPostModal) newPostModal.classList.add("open");
+        openModal(newPostModal);
       });
     }
     if (closePostBtn && newPostModal) {
-      closePostBtn.addEventListener("click", () => newPostModal.classList.remove("open"));
+      closePostBtn.addEventListener("click", () => closeModal(newPostModal));
     }
     if (newPostModal) {
-      newPostModal.addEventListener("click", (e) => { if (e.target === newPostModal) newPostModal.classList.remove("open"); });
+      newPostModal.addEventListener("click", (e) => { if (e.target === newPostModal) closeModal(newPostModal); });
     }
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        if (signinModal) signinModal.classList.remove("open");
-        if (signupModal) signupModal.classList.remove("open");
-        if (reportModal) reportModal.classList.remove("open");
-        if (eventModal) eventModal.classList.remove("open");
-        if (newPostModal) newPostModal.classList.remove("open");
+        closeAllModals();
       }
     });
 
@@ -351,7 +354,7 @@
     if (reportModalBtn) {
       reportModalBtn.addEventListener('click', () => {
         const repMod = document.getElementById("report-modal");
-        if(repMod) repMod.classList.remove("open");
+        if(repMod) closeModal(repMod);
       });
     }
     
@@ -373,7 +376,7 @@
           } else {
              showToast("Report submitted successfully.");
              const m = document.getElementById("report-modal");
-             if(m) m.classList.remove("open");
+             if(m) closeModal(m);
              document.getElementById("report-reason").value = "";
           }
         } catch(err) {}
@@ -408,10 +411,30 @@
     const signoutBtn = document.getElementById("signout-btn");
     if (signoutBtn) {
       signoutBtn.addEventListener("click", async () => {
+        console.log("Sign out clicked");
         try {
-          await supabase.auth.signOut();
+          const { error } = await supabase.auth.signOut();
+
+          if (error) {
+            console.error("Sign out error:", error);
+            showToast("Error signing out: " + error.message);
+            return;
+          }
+
+          // Explicitly clear state in case onAuthStateChange doesn't fire
+          currentUser = null;
+          updateAuthUI();
+          hideDashboard();
           showToast("Signed out successfully.");
-        } catch(err) {}
+          console.log("Sign out complete, currentUser:", currentUser);
+        } catch(err) {
+          console.error("Sign out exception:", err);
+          // Force clear even on exception
+          currentUser = null;
+          updateAuthUI();
+          hideDashboard();
+          showToast("Signed out (forced).");
+        }
       });
     }
   }
@@ -556,13 +579,23 @@
     const submitEventBtn = document.getElementById("submit-event");
     if (submitEventBtn) {
       submitEventBtn.addEventListener("click", async () => {
-        if (!currentUser) return showToast("Please sign in first.");
+        console.log("Post Event clicked. Current User:", currentUser);
+        if (!currentUser) return showToast("Login required");
         if (currentUser.role !== 'alumni' && currentUser.role !== 'admin') {
           return showToast("Only alumni or admins can create events.");
         }
 
         const title = document.getElementById("event-title")?.value?.trim();
-        if (!title) return showToast("Event title is required.");
+        const date = document.getElementById("event-date")?.value || null;
+        const time = document.getElementById("event-time")?.value || null;
+        const location = document.getElementById("event-location")?.value?.trim() || '';
+        const tag = document.getElementById("event-tag")?.value?.trim() || '';
+        const description = document.getElementById("event-desc")?.value?.trim() || '';
+        const type = document.getElementById("event-type")?.value || 'virtual';
+
+        if (!title) return showToast("Title is required");
+
+        console.log("Posting event...", { title, date, time, location, tag, created_by: currentUser.id });
 
         const btn = submitEventBtn;
         const originalText = btn.textContent;
@@ -570,34 +603,43 @@
         btn.disabled = true;
 
         try {
-          const { error } = await supabase.from('events').insert({
+          const insertData = {
             title,
-            description: document.getElementById("event-desc")?.value || '',
-            date: document.getElementById("event-date")?.value || null,
-            time: document.getElementById("event-time")?.value || null,
-            location: document.getElementById("event-location")?.value || '',
-            type: document.getElementById("event-type")?.value || 'virtual',
-            tag: document.getElementById("event-tag")?.value || '',
+            date,
+            time,
+            location,
+            tag,
             created_by: currentUser.id
-          });
+          };
+          // Only include optional columns if they have values
+          if (description) insertData.description = description;
+          if (type) insertData.type = type;
+
+          const { data, error } = await supabase.from('events').insert(insertData).select();
 
           btn.textContent = originalText;
           btn.disabled = false;
 
-          if (error) return showToast("Failed to create event: " + error.message);
+          if (error) {
+            console.error("Event insert error:", error);
+            showToast("Error posting event: " + error.message);
+            return;
+          }
 
-          showToast("Event created successfully!");
+          console.log("Event posted successfully:", data);
+          showToast("Event posted successfully!");
           // Clear the form fields
           ['event-title','event-desc','event-date','event-time','event-location','event-tag'].forEach(id => {
             const el = document.getElementById(id); if (el) el.value = '';
           });
           const eventModal = document.getElementById("event-modal");
-          if (eventModal) eventModal.classList.remove("open");
+          if (eventModal) closeModal(eventModal);
           fetchEvents();
         } catch(err) {
+          console.error("Event post exception:", err);
           btn.textContent = originalText;
           btn.disabled = false;
-          showToast("Network error creating event.");
+          showToast("Unexpected error posting event");
         }
       });
     }
@@ -625,7 +667,7 @@
             title,
             content,
             tag: document.getElementById("post-tag")?.value || 'Discussion',
-            user_id: currentUser.id
+            created_by: currentUser.id
           });
 
           if (btn) { btn.textContent = originalText; btn.disabled = false; }
@@ -635,7 +677,7 @@
           showToast("Discussion posted!");
           postForm.reset();
           const postModal = document.getElementById("new-post-modal");
-          if (postModal) postModal.classList.remove("open");
+          if (postModal) closeModal(postModal);
           fetchForum();
         } catch(err) {
           if (btn) { btn.textContent = originalText; btn.disabled = false; }
@@ -652,7 +694,7 @@
       return showToast("Only alumni or admins can create events.");
     }
     const eventModal = document.getElementById("event-modal");
-    if (eventModal) eventModal.classList.add("open");
+    if (eventModal) openModal(eventModal);
   }
 
   async function editContent(type, id) {
@@ -662,7 +704,7 @@
     
     const updateData = type === 'event' ? { description: newText, is_edited: true } : { content: newText, is_edited: true };
     try {
-      const { error } = await supabase.from(table).update(updateData).eq('id', id).eq(type === 'event' ? 'created_by' : 'user_id', currentUser.id);
+      const { error } = await supabase.from(table).update(updateData).eq('id', id).eq('created_by', currentUser.id);
       
       if (error) {
         showToast("Failed to edit or unauthorized.");
@@ -677,7 +719,7 @@
     if (!confirm("Are you sure you want to delete this?")) return;
     const table = type === 'event' ? 'events' : 'discussions';
     try {
-      const { error } = await supabase.from(table).delete().eq('id', id).eq(type === 'event' ? 'created_by' : 'user_id', currentUser.id);
+      const { error } = await supabase.from(table).delete().eq('id', id).eq('created_by', currentUser.id);
       if (!error) {
         showToast("Deleted.");
         if (type === 'event') fetchEvents(); else fetchForum();
@@ -1023,7 +1065,27 @@
     window._currentReportId = id;
     window._currentReportType = type;
     const modal = document.getElementById("report-modal");
-    if(modal) modal.classList.add("open");
+    if(modal) openModal(modal);
+  }
+
+  // ── Modal open/close helpers (lock body scroll) ──
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("open");
+    // Only restore scroll if no other modals are open
+    const anyOpen = document.querySelector('.modal-overlay.open');
+    if (!anyOpen) document.body.style.overflow = "";
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    document.body.style.overflow = "";
   }
 
   function showToast(message) {
@@ -1139,7 +1201,7 @@
 
   async function fetchForum() {
     try {
-      const { data, error } = await supabase.from('discussions').select('*, users!discussions_user_id_fkey(name)');
+      const { data, error } = await supabase.from('discussions').select('*, users!discussions_created_by_fkey(name)');
       if (!error) renderForum(data);
     } catch(err){}
   }
@@ -1167,7 +1229,7 @@
           <div class="thread-stats" style="display:flex; gap:10px; align-items:center;">
             <span class="thread-stat">💬 ${t.replies || 0}</span>
             <span class="thread-stat">👍 ${t.likes || 0}</span>
-            ${currentUser && currentUser.id === t.user_id ? `<button class="btn-outline" style="padding:2px 6px; font-size:11px; border-color:orange; color:orange;" onclick="editContent('discussion', '${t.id}')">✏️ Edit</button> <button class="btn-outline" style="padding:2px 6px; font-size:11px; border-color:red; color:red;" onclick="deleteOwnContent('discussion', '${t.id}')">🗑️</button>` : ''}
+            ${currentUser && currentUser.id === t.created_by ? `<button class="btn-outline" style="padding:2px 6px; font-size:11px; border-color:orange; color:orange;" onclick="editContent('discussion', '${t.id}')">✏️ Edit</button> <button class="btn-outline" style="padding:2px 6px; font-size:11px; border-color:red; color:red;" onclick="deleteOwnContent('discussion', '${t.id}')">🗑️</button>` : ''}
             <button class="btn-outline" style="padding:2px 6px; font-size:11px;" onclick="openReportModal('${t.id}', 'discussion')">🚨</button>
           </div>
         </div>
