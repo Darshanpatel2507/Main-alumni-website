@@ -229,22 +229,13 @@
       });
     }
 
-    [signinModal, signupModal].forEach(modal => {
-      if (modal) {
-        modal.addEventListener("click", (e) => {
-          if (e.target === modal) closeModal(modal);
-        });
-      }
-    });
+
 
     // ── Event Modal ──
     const eventModal = document.getElementById("event-modal");
     const closeEventBtn = document.getElementById("close-event-modal");
     if (closeEventBtn && eventModal) {
       closeEventBtn.addEventListener("click", () => closeModal(eventModal));
-    }
-    if (eventModal) {
-      eventModal.addEventListener("click", (e) => { if (e.target === eventModal) closeModal(eventModal); });
     }
 
     // ── New Post Modal ──
@@ -264,14 +255,19 @@
     if (closePostBtn && newPostModal) {
       closePostBtn.addEventListener("click", () => closeModal(newPostModal));
     }
-    if (newPostModal) {
-      newPostModal.addEventListener("click", (e) => { if (e.target === newPostModal) closeModal(newPostModal); });
-    }
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         closeAllModals();
       }
+    });
+
+    document.querySelectorAll(".modal-overlay").forEach(modal => {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          closeModal(modal);
+        }
+      });
     });
 
     const signinForm = document.getElementById("signin-form");
@@ -1072,7 +1068,7 @@
   function openModal(modal) {
     if (!modal) return;
     modal.classList.add("open");
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("modal-open");
   }
 
   function closeModal(modal) {
@@ -1080,12 +1076,12 @@
     modal.classList.remove("open");
     // Only restore scroll if no other modals are open
     const anyOpen = document.querySelector('.modal-overlay.open');
-    if (!anyOpen) document.body.style.overflow = "";
+    if (!anyOpen) document.body.classList.remove("modal-open");
   }
 
   function closeAllModals() {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
-    document.body.style.overflow = "";
+    document.body.classList.remove("modal-open");
   }
 
   function showToast(message) {
