@@ -206,6 +206,9 @@ input, select, textarea { font-family: inherit; }
 }
 
 .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -233,7 +236,7 @@ input, select, textarea { font-family: inherit; }
 .theme-toggle {
   width: 40px; height: 40px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-color);
+  border: 1px solid var(--border-color);
   background: var(--bg-secondary);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-secondary);
@@ -244,7 +247,120 @@ input, select, textarea { font-family: inherit; }
 .theme-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
-  transform: rotate(15deg);
+  background: var(--accent-light);
+}
+
+/* Icon Buttons (Chat, Dashboard, Sign Out) */
+.btn-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+  transform: translateY(-2px);
+}
+
+.nav-btn-with-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.nav-btn-with-text:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+  transform: translateY(-2px);
+}
+
+.profile-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 10px 4px 4px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text-secondary);
+}
+
+.profile-menu-btn:hover,
+.profile-menu-btn.active {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  width: 180px;
+  z-index: 1001;
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.profile-dropdown.show {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-primary);
+}
+
+.dropdown-item#signout-btn {
+  color: #ef4444;
+}
+.dropdown-item#signout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Show/hide moon vs sun icon */
@@ -1427,6 +1543,22 @@ body.modal-open {
     opacity: 1;
   }
 
+  .desktop-only { display: none !important; }
+
+  .nav-btn-with-text {
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  
+  .profile-menu-btn {
+    padding: 0;
+    border-radius: 50%;
+    border: none !important;
+  }
+  
   .hamburger { display: flex; }
   .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .hamburger.open span:nth-child(2) { opacity: 0; }
@@ -1459,4 +1591,186 @@ body.modal-open {
     padding: 20px;
     border-radius: 14px;
   }
+}
+
+/* Chat UI Styles */
+.chat-user-item {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition);
+}
+.chat-user-item:hover {
+  background: var(--accent-light);
+}
+.chat-user-item.active-chat {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+}
+
+/* =====================================================
+   MODERN DASHBOARD & CHAT UI
+   ===================================================== */
+.dashboard-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.dashboard-tabs .btn-outline {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 12px 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transition);
+}
+
+.dashboard-tabs .btn-outline:hover {
+  color: var(--accent);
+  background: transparent;
+}
+
+.dashboard-tabs .btn-outline.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: transparent;
+}
+
+/* Modern Cards */
+.modern-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition), box-shadow var(--transition);
+  margin-bottom: 16px;
+}
+.modern-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+/* Chat UI Improvements */
+.chat-layout {
+  display: flex;
+  height: 600px;
+  max-height: 80vh;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  background: var(--bg-card);
+}
+
+.chat-sidebar {
+  width: 320px;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.chat-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-input-area {
+  padding: 16px 24px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.chat-input-area .form-input {
+  flex: 1;
+  border-radius: 24px;
+  padding: 12px 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.btn-send {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+.btn-send:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+.btn-send:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Chat Bubbles */
+.chat-bubble {
+  max-width: 75%;
+  padding: 12px 18px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.chat-bubble-sender {
+  background: var(--accent);
+  color: white;
+  border-bottom-right-radius: 4px;
+  align-self: flex-end;
+}
+
+.chat-bubble-receiver {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+}
+
+.chat-time {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-top: 4px;
+  display: block;
 }
