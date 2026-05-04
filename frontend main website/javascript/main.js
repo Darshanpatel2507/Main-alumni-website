@@ -414,27 +414,15 @@
       signoutBtn.addEventListener("click", async () => {
         console.log("Sign out clicked");
         try {
-          const { error } = await supabase.auth.signOut();
-
-          if (error) {
-            console.error("Sign out error:", error);
-            showToast("Error signing out: " + error.message);
-            return;
-          }
-
-          // Explicitly clear state in case onAuthStateChange doesn't fire
-          currentUser = null;
-          updateAuthUI();
-          hideDashboard();
-          showToast("Signed out successfully.");
-          console.log("Sign out complete, currentUser:", currentUser);
+          await supabase.auth.signOut();
+          window.sessionStorage.clear();
+          window.location.hash = '#home';
+          window.location.reload();
         } catch(err) {
           console.error("Sign out exception:", err);
-          // Force clear even on exception
-          currentUser = null;
-          updateAuthUI();
-          hideDashboard();
-          showToast("Signed out (forced).");
+          window.sessionStorage.clear();
+          window.location.hash = '#home';
+          window.location.reload();
         }
       });
     }
@@ -498,16 +486,54 @@
     const signinBtn = document.getElementById("signin-btn");
     const userProfile = document.getElementById("user-profile");
     const userNameDisplay = document.getElementById("user-name-display");
+    const userRoleDisplay = document.getElementById("user-role-display");
+    const welcomeName = document.getElementById("welcome-name");
+    const userAvatar = document.getElementById("user-avatar");
 
     if (currentUser) {
       if (signinBtn) signinBtn.style.display = "none";
       if (userProfile) userProfile.style.display = "flex";
-      if (userNameDisplay) userNameDisplay.textContent = currentUser.name || "User";
+      
+      const name = currentUser.name || "User";
+      if (userNameDisplay) userNameDisplay.textContent = name;
+      if (welcomeName) welcomeName.textContent = name;
+      if (userRoleDisplay) userRoleDisplay.textContent = currentUser.role || "User";
+      
+      if (userAvatar) {
+         // Create initials from name
+         const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+         userAvatar.textContent = initials || "U";
+         
+         // Generate color
+         let hash = 0;
+         for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+         }
+         const h = hash % 360;
+         userAvatar.style.background = `hsl(${h}, 70%, 50%)`;
+      }
     } else {
       if (signinBtn) signinBtn.style.display = "block";
       if (userProfile) userProfile.style.display = "none";
     }
   }
+
+  // Global helper to toggle dropdown
+  window.toggleProfileDropdown = function() {
+     const dropdown = document.getElementById('profile-dropdown');
+     if (dropdown) dropdown.classList.toggle('show');
+  };
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+     const profileMenuBtn = document.getElementById('profile-menu-btn');
+     const dropdown = document.getElementById('profile-dropdown');
+     if (profileMenuBtn && dropdown) {
+        if (!profileMenuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+           dropdown.classList.remove('show');
+        }
+     }
+  });
 
   /* ────────────────────────────────────────────────────────
      DASHBOARD ROUTING
@@ -533,15 +559,22 @@
 
      window.scrollTo(0, 0);
 
+     document.querySelectorAll('.dashboard-user-name').forEach(el => {
+       el.textContent = currentUser.name.split(' ')[0] || currentUser.name;
+     });
+
      if (currentUser.role === 'admin') {
        if(aDash) aDash.style.display = 'block';
        loadAdminDashboard();
+       loadAllChatUsers();
      } else if (currentUser.role === 'alumni') {
        if(alDash) alDash.style.display = 'block';
        loadAlumniDashboard();
+       loadAllChatUsers();
      } else {
        if(sDash) sDash.style.display = 'block';
        loadStudentDashboard();
+       loadAllChatUsers();
      }
   }
 
@@ -569,6 +602,23 @@
      
      const btn = Array.from(document.querySelectorAll('.dashboard-tabs .btn-outline')).find(b => b.getAttribute('onclick').includes(tabId));
      if (btn) btn.classList.add('active');
+  }
+
+  function openNavChat() {
+     if (!currentUser) {
+         showToast("Please sign in first");
+         return;
+     }
+     showDashboard();
+     if (currentUser.role === 'admin') {
+         showDashboardTab('admin-chat');
+     } else if (currentUser.role === 'alumni') {
+         showDashboardTab('alumni-chat');
+     } else if (currentUser.role === 'student') {
+         showDashboardTab('student-chat');
+     } else {
+         showToast("Chat not available for this role");
+     }
   }
 
   /* ────────────────────────────────────────────────────────
@@ -946,6 +996,46 @@
      STUDENT / ALUMNI CONNECTIONS & DASHBOARD
      ──────────────────────────────────────────────────────── */
 
+  async function loadAllChatUsers() {
+    if (!currentUser) return;
+    try {
+      const { data: users, error } = await supabase.from('users')
+         .select('id, name, role')
+         .neq('id', currentUser.id)
+         .eq('approved', true);
+         
+      if (error) return;
+
+      const chatUsersContainer = currentUser.role === 'admin' ? document.getElementById("admin-chat-users") : (currentUser.role === 'alumni' ? document.getElementById("alumni-chat-users") : document.getElementById("student-chat-users"));
+      
+      if (chatUsersContainer) {
+         chatUsersContainer.innerHTML = users.length ? users.map(u => `
+           <div class="chat-user-item" id="chat-user-${u.id}" onclick="openChat('${currentUser.id}', '${u.id}', '${u.name}', '${currentUser.role}'); highlightActiveChat('${u.id}')">
+             <div style="display:flex; align-items:center; gap:10px;">
+               <div class="alumni-avatar" style="background:${getColorForName(u.name)}; width:36px; height:36px; font-size:14px;">${getInitials(u.name)}</div>
+               <div style="flex:1; overflow:hidden;">
+                 <div style="font-weight:600; font-size:0.9rem;">${u.name} <span style="font-size:0.7rem; color:var(--text-muted);">(${u.role})</span></div>
+                 <div id="preview-${u.id}" style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Loading...</div>
+               </div>
+             </div>
+           </div>
+         `).join("") : "<div style='padding:15px;color:var(--text-muted);text-align:center;'>No users found.</div>";
+
+         users.forEach(async u => {
+            const { data } = await supabase.from('messages')
+              .select('message')
+              .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${u.id}),and(sender_id.eq.${u.id},receiver_id.eq.${currentUser.id})`)
+              .order('created_at', { ascending: false })
+              .limit(1);
+            const previewEl = document.getElementById(`preview-${u.id}`);
+            if (previewEl) {
+               previewEl.textContent = (data && data.length > 0) ? data[0].message : "No messages yet";
+            }
+         });
+      }
+    } catch(err){}
+  }
+
   async function handleConnect(alumniId, alumniName) {
     if (!currentUser) return showToast("Log in to connect!");
     if (currentUser.role !== 'student') return showToast("Only students can send connection requests to alumni.");
@@ -966,19 +1056,67 @@
       const connContainer = document.getElementById('student-connections-list');
       const { data: conns } = await supabase.from('connections').select('*, users!connections_alumni_id_fkey(id, name)').eq('student_id', currentUser.id);
 
-      if (!conns || conns.length === 0) {
-        if (connContainer) connContainer.innerHTML = '<p>No connections yet.</p>';
-      } else {
-        const chatUsers = document.getElementById("student-chat-users");
-        let accepted = conns.filter(c => c.status === 'accepted');
-        if (chatUsers) chatUsers.innerHTML = accepted.length ? accepted.map(c => `<div style="padding:10px; cursor:pointer; border-bottom:1px solid #ccc" onclick="openChat('${currentUser.id}', '${c.users.id}', '${c.users.name}', 'student')">Chat with ${c.users.name}</div>`).join("") : "No accepted mentors.";
+      if (connContainer) {
+        if (!conns || conns.length === 0) {
+          connContainer.innerHTML = '<p>No connections yet.</p>';
+        } else {
+          connContainer.innerHTML = conns.map(c => `
+            <div class="modern-card" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px;">
+              <div>
+                <strong style="font-size:1.1rem; color:var(--text-primary);">Mentor: ${c.users?.name || 'Unknown'}</strong>
+              </div>
+              <div>
+                <span style="padding:6px 14px; border-radius:20px; font-size:0.85rem; font-weight:600; background:${c.status === 'accepted' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)'}; color:${c.status === 'accepted' ? '#16a34a' : '#d97706'};">
+                  ${c.status.charAt(0).toUpperCase() + c.status.slice(1)}
+                </span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
 
-        if (connContainer) connContainer.innerHTML = conns.map(c => `
-          <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between;">
-            <span>Mentor: ${c.users?.name}</span>
-            <span>Status: ${c.status}</span>
-          </div>
-        `).join('');
+      // Fetch Alumni for Mentors tab
+      const { data: mentors } = await supabase.from('users').select('*').eq('role', 'alumni').eq('approved', true);
+      const mentorsContainer = document.getElementById('student-mentors-list');
+      if (mentorsContainer) {
+         if (!mentors || mentors.length === 0) {
+            mentorsContainer.innerHTML = '<p>No mentors available.</p>';
+         } else {
+            mentorsContainer.innerHTML = mentors.map(a => `
+              <div class="alumni-card">
+                <div class="alumni-header">
+                  <div class="alumni-avatar" style="background: ${getColorForName(a.name)};">${getInitials(a.name)}</div>
+                  <div>
+                    <div class="alumni-name">${a.name}</div>
+                    <div class="alumni-class">${a.branch || 'Domain/Field not specified'}</div>
+                  </div>
+                </div>
+                <div style="margin-top:15px;">
+                   <button class="btn-connect" onclick="handleConnect('${a.id}', '${a.name}')">Connect</button>
+                </div>
+              </div>
+            `).join('');
+         }
+      }
+
+      // Fetch Events for Events tab
+      const { data: events } = await supabase.from('events').select('*, users!events_created_by_fkey(name)');
+      const eventsContainer = document.getElementById('student-events-list');
+      if (eventsContainer) {
+         if (!events || events.length === 0) {
+            eventsContainer.innerHTML = '<p>No events available.</p>';
+         } else {
+            eventsContainer.innerHTML = events.map(e => `
+              <div class="modern-card">
+                <h4 style="font-size:1.2rem; color:var(--text-primary); margin-bottom:8px;">${e.title}</h4>
+                <div style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>${e.date || ''} ${e.time || ''} &nbsp;•&nbsp; ${e.location || 'Online'} &nbsp;•&nbsp; Hosted by ${e.users?.name || 'Alumni'}</span>
+                </div>
+                <p style="font-size:0.95rem; line-height:1.5; color:var(--text-secondary);">${e.description || 'No description provided.'}</p>
+              </div>
+            `).join('');
+         }
       }
     } catch(err){}
   }
@@ -988,20 +1126,49 @@
       const connContainer = document.getElementById('alumni-connections-list');
       const { data: conns } = await supabase.from('connections').select('*, users!connections_student_id_fkey(id, name)').eq('alumni_id', currentUser.id);
 
-      if (!conns || conns.length === 0) {
-        if (connContainer) connContainer.innerHTML = '<p>No connection requests yet.</p>';
-      } else {
-        const chatUsers = document.getElementById("alumni-chat-users");
-        let accepted = conns.filter(c => c.status === 'accepted');
-        if (chatUsers) chatUsers.innerHTML = accepted.length ? accepted.map(c => `<div style="padding:10px; cursor:pointer; border-bottom:1px solid #ccc" onclick="openChat('${c.users.id}', '${currentUser.id}', '${c.users.name}', 'alumni')">Chat with ${c.users.name}</div>`).join("") : "No accepted students.";
+      if (connContainer) {
+        if (!conns || conns.length === 0) {
+          connContainer.innerHTML = '<p>No connection requests yet.</p>';
+        } else {
+          connContainer.innerHTML = conns.map(c => `
+            <div class="modern-card" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:1.1rem; color:var(--text-primary);">Student: ${c.users?.name || 'Unknown'}</strong>
+                <div style="margin-top:4px;">
+                  <span style="padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:600; background:var(--bg-primary); color:var(--text-secondary);">Status: ${c.status}</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                ${c.status === 'pending' ? `<button class="btn-primary" style="padding:8px 16px; font-size:0.85rem;" onclick="updateConn('${c.id}', 'accepted')">Accept</button> <button class="btn-outline" style="padding:8px 16px; font-size:0.85rem; border-color:#ef4444; color:#ef4444;" onclick="updateConn('${c.id}', 'rejected')">Reject</button>` : ''}
+              </div>
+            </div>
+          `).join('');
+        }
+      }
 
-        if (connContainer) connContainer.innerHTML = conns.map(c => `
-          <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px;">
-            <p>Student: ${c.users?.name}</p>
-            <p>Status: ${c.status}</p>
-            ${c.status === 'pending' ? `<button class="btn-primary" onclick="updateConn('${c.id}', 'accepted')">Accept</button> <button class="btn-outline" onclick="updateConn('${c.id}', 'rejected')">Reject</button>` : ''}
-          </div>
-        `).join('');
+      // Fetch Alumni's own events
+      const { data: myEvents } = await supabase.from('events').select('*').eq('created_by', currentUser.id);
+      const myEventsContainer = document.getElementById('alumni-my-events');
+      if (myEventsContainer) {
+         if (!myEvents || myEvents.length === 0) {
+            myEventsContainer.innerHTML = '<p>You have not created any events.</p>';
+         } else {
+            myEventsContainer.innerHTML = myEvents.map(e => `
+              <div class="modern-card" style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <strong style="font-size:1.15rem; color:var(--text-primary); display:block; margin-bottom:4px;">${e.title}</strong>
+                  <span style="font-size:0.85rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    ${e.date || ''} ${e.time || ''} - ${e.location || ''}
+                  </span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-outline" style="padding:6px 12px; font-size:0.85rem;" onclick="editContent('event', '${e.id}')">Edit</button>
+                  <button class="btn-outline" style="padding:6px 12px; font-size:0.85rem; border-color:#ef4444; color:#ef4444;" onclick="deleteOwnContent('event', '${e.id}')">Delete</button>
+                </div>
+              </div>
+            `).join('');
+         }
       }
     } catch(err){}
   }
@@ -1018,9 +1185,9 @@
      REALTIME CHAT
      ──────────────────────────────────────────────────────── */
 
-  async function openChat(studentId, alumniId, peerName, userType) {
+  async function openChat(p1, p2, peerName, userType) {
     try {
-      const chatPrefix = userType === 'alumni' ? 'alumni' : 'student';
+      const chatPrefix = userType; // 'admin', 'alumni', or 'student'
       const chatMessages = document.getElementById(`${chatPrefix}-chat-messages`);
       const chatInput = document.getElementById(`${chatPrefix}-chat-input`);
       const chatForm = document.getElementById(`${chatPrefix}-chat-form`);
@@ -1030,21 +1197,32 @@
       if(chatInput) chatInput.disabled = false;
       if(chatForm && chatForm.querySelector("button")) chatForm.querySelector("button").disabled = false;
 
-      const roomId = `${studentId}_${alumniId}`;
+      const roomId = [p1, p2].sort().join('_');
 
       const { data: history } = await supabase.from('messages')
           .select('*')
-          .or(`and(sender_id.eq.${studentId},receiver_id.eq.${alumniId}),and(sender_id.eq.${alumniId},receiver_id.eq.${studentId})`)
+          .or(`and(sender_id.eq.${p1},receiver_id.eq.${p2}),and(sender_id.eq.${p2},receiver_id.eq.${p1})`)
           .order('created_at', { ascending: true });
 
       const renderMsgs = (msgs) => {
         if (!chatMessages) return;
-        chatMessages.innerHTML = msgs.map(m => `
-          <div style="margin-bottom:8px; text-align:${m.sender_id === currentUser.id ? 'right' : 'left'}">
-             <span style="display:inline-block; padding:8px 12px; border-radius:8px; background:${m.sender_id === currentUser.id ? 'var(--primary-color)' : '#e2e8f0'}; color:${m.sender_id === currentUser.id ? '#fff' : '#000'}">${m.content}</span>
+        if (msgs.length === 0) {
+          chatMessages.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top: 20px;">No messages yet. Send a message to start!</div>';
+          return;
+        }
+        chatMessages.innerHTML = msgs.map(m => {
+          const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const isSender = m.sender_id === currentUser.id;
+          return `
+          <div style="display:flex; flex-direction:column; align-items:${isSender ? 'flex-end' : 'flex-start'}">
+             <div class="chat-bubble ${isSender ? 'chat-bubble-sender' : 'chat-bubble-receiver'}">
+               ${m.message}
+             </div>
+             <span class="chat-time" style="margin-${isSender ? 'right' : 'left'}:4px;">${time}</span>
           </div>
-        `).join('');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+          `;
+        }).join('');
+        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
       };
       
       if (history) renderMsgs(history);
@@ -1052,10 +1230,17 @@
       if (activeChatChannel) supabase.removeChannel(activeChatChannel);
       activeChatChannel = supabase.channel(`room_${roomId}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-           if ((payload.new.sender_id === studentId || payload.new.sender_id === alumniId) &&
-               (payload.new.receiver_id === studentId || payload.new.receiver_id === alumniId)) {
-              history.push(payload.new);
-              renderMsgs(history);
+           if ((payload.new.sender_id === p1 || payload.new.sender_id === p2) &&
+               (payload.new.receiver_id === p1 || payload.new.receiver_id === p2)) {
+              if (history) {
+                 history.push(payload.new);
+                 renderMsgs(history);
+              }
+              const peerId = currentUser.id === payload.new.sender_id ? payload.new.receiver_id : payload.new.sender_id;
+              const previewEl = document.getElementById(`preview-${peerId}`);
+              if (previewEl) {
+                 previewEl.textContent = payload.new.message;
+              }
            }
         }).subscribe();
 
@@ -1065,10 +1250,13 @@
           if (!chatInput || !chatInput.value.trim()) return;
           const msg = chatInput.value;
           chatInput.value = "";
+          
+          const receiverId = (currentUser.id === p1) ? p2 : p1;
+          
           await supabase.from('messages').insert({
             sender_id: currentUser.id,
-            receiver_id: userType === 'alumni' ? studentId : alumniId,
-            content: msg
+            receiver_id: receiverId,
+            message: msg
           });
         };
       }
@@ -1078,6 +1266,12 @@
   /* ────────────────────────────────────────────────────────
      RENDERERS & HELPERS
      ──────────────────────────────────────────────────────── */
+
+  function highlightActiveChat(peerId) {
+    document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active-chat'));
+    const item = document.getElementById(`chat-user-${peerId}`);
+    if (item) item.classList.add('active-chat');
+  }
 
   function getInitials(name) {
     if (!name) return "?";
@@ -1309,9 +1503,11 @@
   window.showDashboard = showDashboard;
   window.hideDashboard = hideDashboard;
   window.showDashboardTab = showDashboardTab;
+  window.openNavChat = openNavChat;
   window.handleConnect = handleConnect;
   window.showAddEventModal = showAddEventModal;
   window.restrictUser = restrictUser;
   window.unrestrictUser = unrestrictUser;
 
+  window.highlightActiveChat = highlightActiveChat;
 })();
